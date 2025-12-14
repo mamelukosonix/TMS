@@ -1,0 +1,39 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 2.4.8)
+SET(CMAKE_COLOR_MAKEFILE ON)
+SET(CMAKE_VERBOSE_MAKEFILE ON)
+SET(CMAKE_INCLUDE_CURRENT_DIR TRUE)
+
+IF(UNIX AND NOT LINUX_SET)
+ ADD_DEFINITIONS(-D LINUX)
+ENDIF(UNIX AND NOT LINUX_SET)
+
+INCLUDE_DIRECTORIES(
+../tmolib/
+.
+)
+
+LINK_LIBRARIES (
+tmo
+)
+
+SET(TMO_SOURCES
+ TMOLiu19.cpp
+ TMOPlugin.cpp
+)
+
+
+SET(TMOWARD_HEADERS
+ TMOLiu19.h
+ TMOPlugin.h
+)
+
+
+add_library( liu19 SHARED ${TMO_SOURCES} )
+add_custom_command( TARGET liu19 POST_BUILD 
+	COMMAND cp -f libliu19.so ../TMOCmd/liu19.tml
+	COMMAND cp -f libliu19.so ../TMOgui/liu19.tml 
+	COMMAND cp -f libliu19.so ../liu19.tml 
+#	COMMAND rm -f libliu19.so 
+	)
+
+

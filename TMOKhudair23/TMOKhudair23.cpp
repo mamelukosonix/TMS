@@ -26,17 +26,25 @@ TMOKhudair23::TMOKhudair23()
     SetDescription(L"Color-to-grayscale conversion based on SVD "
                    L"(Khudhair et al., 2023).");
 
-    dParameter.SetName(L"k");
-    dParameter.SetDescription(
+    Kappa.SetName(L"k");
+    Kappa.SetDescription(
         L"Divisor k in G = ||S|| / k (Eq. (6)); "
         L"paper examples use k = 2."
     );
-    dParameter.SetRange(0.01, 100.0);
-    dParameter = 2.0; 
-    Register(dParameter);
+    Kappa.SetRange(0.01, 100.0);
+    Kappa = 2.0; 
+    this->Register(Kappa);
+
+    Mode.SetName(L"Mode");
+    Mode.SetDescription(
+        L"Select which channel is weighted by factor 3:1==R, 2==G, 3==B\n"
+    );
+    Mode.SetDefault(1);        // paper often shows red-weighted as default
+    Mode = 0;
+    Mode.SetRange(1, 3);
+    this->Register(Mode);
 }
 
-//TODO look at this again
 TMOKhudair23::~TMOKhudair23()
 {
     // required for vtable
@@ -48,6 +56,8 @@ TMOKhudair23::~TMOKhudair23()
 
 int TMOKhudair23::Transform()
 {
+    int mode = static_cast<int>(Mode);
+
     pSrc->Convert(TMO_RGB);
     pDst->Convert(TMO_RGB);
 
@@ -58,11 +68,11 @@ int TMOKhudair23::Transform()
     double *dst = pDst->GetData();
 
     // k from Eq. (6)
-    double k = static_cast<double>(dParameter);
+    double k = static_cast<double>(Kappa);
     if (k == 0.0)
         k = 1.0; // no division by zero
 
-    const double weight = 3.0;   // TODO Step 9: multiply one channel by 3, for now only red, we will add choice later (R,G,B)
+    const double weight = 3.0;
 
 
     for (int y = 0; y < height; ++y)
@@ -78,10 +88,25 @@ int TMOKhudair23::Transform()
 
             // Step 8: create vector for each pixel: C = [xr, xg, xb]
             // Step 9: add weight to one parameter:
-            mtx::Matrix C(1, 3);
-            C[0][0] = weight * xr;  // 3 * R
-            C[0][1] = xg;           // G
-            C[0][2] = xb;           // B
+        mtx::Matrix C(1, 3);
+            switch (mode)
+            {
+            case 1: // C1
+                C[0][0] = weight * xr;
+                C[0][1] = xg;
+                C[0][2] = xb;
+                break;
+            case 2: // C2
+                C[0][0] = xr;
+                C[0][1] = weight * xg;
+                C[0][2] = xb;
+                break;
+            case 3: // C3
+                C[0][0] = xr;
+                C[0][1] = xg;
+                C[0][2] = weight * xb;
+                break;
+            }
 
             // Step 10: [U S V] = SVD(C(i,j))
             mtx::Matrix U, V;
@@ -101,7 +126,6 @@ int TMOKhudair23::Transform()
             // Step 11:(Eq. (6))
             double gray = normS / k;
 
-            //TODO- look at this again, not sure
             //Step 12: GrayImage(i,j) = G
             *dst++ = gray;  // R'
             *dst++ = gray;  // G'

@@ -15,6 +15,7 @@ public:
 protected:
     // This will be the 'k' from the paper: G = ||S|| / k
     TMODouble dParameter;
+	TMOInt Mode;
 };
 
 #endif
